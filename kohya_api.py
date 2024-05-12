@@ -1,10 +1,14 @@
-from typing import Union
+from typing import List, Union
 
 from fastapi import FastAPI
 from pydantic import BaseModel
 import os
 import boto3
 from kohya_gui import lora_gui
+from kohya_gui import dreambooth_folder_creation_gui
+
+DATA_ROOT_PATH = "/home/gazai/opt/DATA/external"
+# DATA_ROOT_PATH = "./external"
 
 app = FastAPI()
 # client = Client("http://beta.gazai.io:8502/")
@@ -19,21 +23,81 @@ class Item(BaseModel):
 
 class TrainingParams(BaseModel):
     user_id: str
-    project_name: str
+    name: str
+    training_images: List[str]
+    regularization_images: List[str]
+    instance_prompt: str
+    class_prompt: str
 
 
-def test_gradio_client():
+@app.get("/")
+def read_root():
+    return {"Hello": "World"}
+
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int, q: Union[str, None] = None):
+    return {"item_id": item_id, "q": q}
+
+
+@app.put("/items/{item_id}")
+def update_item(item_id: int, item: Item):
+    return {"item_name": item.name, "item_id": item_id}
+
+
+@app.post("/model/train")
+def train_model(training_params: TrainingParams):
+    model_name = training_params.name
+    user_id = training_params.user_id
+    instance_prompt = training_params.instance_prompt
+    class_prompt = training_params.class_prompt
+
+    training_images_dir_input = (
+        rf"{DATA_ROOT_PATH}/ft-Inputs/{user_id}/{model_name}/raw/img"
+    )
+    regularization_images_dir_input = (
+        rf"{DATA_ROOT_PATH}/ft-Inputs/{user_id}/{model_name}/raw/reg"
+    )
+    prepared_project_dir = (
+        rf"{DATA_ROOT_PATH}/ft-Inputs/{user_id}/{model_name}/prepared"
+    )
+
+    os.makedirs(training_images_dir_input, exist_ok=True)
+    os.makedirs(regularization_images_dir_input, exist_ok=True)
+
+    bucket_name = "gazai"
+
+    for object_name in training_params.training_images:
+        object_key = rf"assets/{user_id}/{object_name}"
+        local_file_path = os.path.join(training_images_dir_input, object_name)
+        s3.download_file(bucket_name, object_key, local_file_path)
+
+    for object_name in training_params.regularization_images:
+        object_key = rf"assets/{user_id}/{object_name}"
+        local_file_path = os.path.join(regularization_images_dir_input, object_name)
+        s3.download_file(bucket_name, object_key, local_file_path)
+
+    dreambooth_folder_creation_gui.dreambooth_folder_preparation(
+        util_training_images_dir_input=training_images_dir_input,
+        util_training_images_repeat_input=40,
+        util_instance_prompt_input=instance_prompt,
+        util_regularization_images_dir_input=regularization_images_dir_input,
+        util_regularization_images_repeat_input=1,
+        util_class_prompt_input=class_prompt,
+        util_training_dir_output=prepared_project_dir,
+    )
+
     lora_gui.train_model(
         headless=False,
-        print_only=True,
+        print_only=False,
         pretrained_model_name_or_path="stabilityai/stable-diffusion-xl-base-1.0",
         v2=False,
         v_parameterization=False,
         sdxl=True,
-        logging_dir="/home/gazai/workspace/kohya_ss/training/log",
-        train_data_dir="/home/gazai/workspace/kohya_ss/training/img",
-        reg_data_dir="/home/gazai/workspace/kohya_ss/training/reg",
-        output_dir="/home/gazai/workspace/kohya_ss/training/model",
+        logging_dir=os.path.join(prepared_project_dir, "log"),
+        train_data_dir=os.path.join(prepared_project_dir, "img"),
+        reg_data_dir=os.path.join(prepared_project_dir, "reg"),
+        output_dir=os.path.join(prepared_project_dir, "model"),
         dataset_config="",
         max_resolution="512,512",
         learning_rate=0.0001,
@@ -184,36 +248,5 @@ def test_gradio_client():
         metadata_tags="",
         metadata_title="",
     )
-
-
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
-
-
-@app.put("/items/{item_id}")
-def update_item(item_id: int, item: Item):
-    return {"item_name": item.name, "item_id": item_id}
-
-
-@app.post("/model/train")
-def train_model(training_params: TrainingParams):
-    user_id = "clsl8oq4k0000miky99qwmt0l"
-
-    if not os.path.exists("./ft-Inputs/"):
-        os.mkdir("./ft-Inputs/")
-
-    test_gradio_client()
-
-    # bucket_name = "gazai"
-    # object_key = f"assets/{user_id}/"
-    # local_file_path = "./ft-Inputs/your_local_file_name"
-
-    # s3.download_file(bucket_name, object_key, local_file_path)
 
     return training_params
