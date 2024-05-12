@@ -6,13 +6,22 @@ import os
 import boto3
 from kohya_gui import lora_gui
 from kohya_gui import dreambooth_folder_creation_gui
+from dotenv import load_dotenv
 
 DATA_ROOT_PATH = "/home/gazai/opt/DATA/external"
 # DATA_ROOT_PATH = "./external"
 
 app = FastAPI()
-# client = Client("http://beta.gazai.io:8502/")
-s3 = boto3.client("s3")
+
+load_dotenv()
+AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
+AWS_ACCESS_SECRET_KEY = os.environ.get("AWS_ACCESS_SECRET_KEY")
+
+s3 = boto3.client(
+    "s3",
+    aws_access_key_id=AWS_ACCESS_KEY_ID,
+    aws_secret_access_key=AWS_ACCESS_SECRET_KEY,
+)
 
 
 class Item(BaseModel):
