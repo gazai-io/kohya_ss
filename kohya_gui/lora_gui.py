@@ -682,6 +682,10 @@ def train_model(
         gr.Button(visible=False or headless),
         gr.Textbox(value=train_state_value),
     ]
+    
+    global executor
+    if executor is None:
+        executor = CommandExecutor(headless=headless)
 
     if executor.is_running():
         log.error("Training is already running. Can't start another training session.")
