@@ -2,6 +2,7 @@ from typing import List, Union
 
 from fastapi import FastAPI
 from pydantic import BaseModel
+from pydantic.alias_generators import to_camel
 import os
 import boto3
 from kohya_gui import lora_gui
@@ -15,43 +16,31 @@ app = FastAPI()
 
 load_dotenv()
 AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID")
-AWS_ACCESS_SECRET_KEY = os.environ.get("AWS_ACCESS_SECRET_KEY")
+AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY")
 
 s3 = boto3.client(
     "s3",
     aws_access_key_id=AWS_ACCESS_KEY_ID,
-    aws_secret_access_key=AWS_ACCESS_SECRET_KEY,
+    aws_secret_access_key=AWS_SECRET_ACCESS_KEY,
 )
-
-
-class Item(BaseModel):
-    name: str
-    price: float
-    is_offer: Union[bool, None] = None
 
 
 class TrainingParams(BaseModel):
     user_id: str
     name: str
+    description: str
     training_images: List[str]
     regularization_images: List[str]
     instance_prompt: str
     class_prompt: str
 
+    class Config:
+        alias_generator = to_camel
+
 
 @app.get("/")
 def read_root():
     return {"Hello": "World"}
-
-
-@app.get("/items/{item_id}")
-def read_item(item_id: int, q: Union[str, None] = None):
-    return {"item_id": item_id, "q": q}
-
-
-@app.put("/items/{item_id}")
-def update_item(item_id: int, item: Item):
-    return {"item_name": item.name, "item_id": item_id}
 
 
 @app.post("/model/train")
@@ -62,13 +51,13 @@ def train_model(training_params: TrainingParams):
     class_prompt = training_params.class_prompt
 
     training_images_dir_input = (
-        rf"{DATA_ROOT_PATH}/ft-Inputs/{user_id}/{model_name}/raw/img"
+        rf"{DATA_ROOT_PATH}/ft-inputs/{user_id}/{model_name}/raw/img"
     )
     regularization_images_dir_input = (
-        rf"{DATA_ROOT_PATH}/ft-Inputs/{user_id}/{model_name}/raw/reg"
+        rf"{DATA_ROOT_PATH}/ft-inputs/{user_id}/{model_name}/raw/reg"
     )
     prepared_project_dir = (
-        rf"{DATA_ROOT_PATH}/ft-Inputs/{user_id}/{model_name}/prepared"
+        rf"{DATA_ROOT_PATH}/ft-inputs/{user_id}/{model_name}/prepared"
     )
 
     os.makedirs(training_images_dir_input, exist_ok=True)
@@ -231,7 +220,7 @@ def train_model(training_params: TrainingParams):
         rank_dropout=0,
         module_dropout=0,
         sdxl_cache_text_encoder_outputs=False,
-        sdxl_no_half_vae=False,
+        sdxl_no_half_vae=True,
         full_bf16=False,
         min_timestep=0,
         max_timestep=1000,
