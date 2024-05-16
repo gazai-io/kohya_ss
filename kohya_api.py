@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import  FastAPI, BackgroundTasks
+from fastapi import FastAPI, BackgroundTasks
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 import os
@@ -95,7 +95,9 @@ class LoraModel(Base):
     baseModel = Column(String)
     resolution = Column(String, nullable=True)
     objectKey = Column(String, nullable=True)
-    status = Column(Enum(LoraModelStatus), default=LoraModelStatus.PENDING, nullable=False)
+    status = Column(
+        Enum(LoraModelStatus), default=LoraModelStatus.PENDING, nullable=False
+    )
     userId = Column(String)
     regDataset = Column(String, nullable=True)
     createdAt = Column(Date)
@@ -104,12 +106,15 @@ class LoraModel(Base):
 def update_lora_model(
     conn: Connection, id: str, object_key: str, status: LoraModelStatus
 ):
+    log.info(f"Updating lora model {id} ...")
+
     update_stmt = (
         update(LoraModel)
         .where(LoraModel.id == id)
         .values(objectKey=object_key, status=status)
     )
     conn.execute(update_stmt)
+    conn.commit()
 
 
 def upload_model_to_s3(file_path, user_id):
@@ -941,9 +946,12 @@ def _train_model(
         object_key = upload_model_to_s3(
             os.path.join(output_dir, f"{output_name}.{save_model_as}"), user_id
         )
+        log.info(f"Uploaded {object_key} ...")
 
         with engine.connect() as conn:
             update_lora_model(conn, model_id, object_key, LoraModelStatus.READY)
+
+        log.info(f"Training completed ...")
 
 
 @app.get("/")
