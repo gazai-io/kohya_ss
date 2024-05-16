@@ -128,8 +128,8 @@ def upload_model_to_s3(file_path, user_id):
 
 class TrainingParams(BaseModel):
     user_id: str
-    model_id: str
-    model_name: str
+    lora_model_id: str
+    lora_model_name: str
     description: str
     base_model: str
     resolution: str
@@ -956,8 +956,8 @@ def train_model(
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
 ):
-    model_id = training_params.model_id
-    model_name = training_params.model_name
+    model_id = training_params.lora_model_id
+    model_name = training_params.lora_model_name
     model_name = model_name.replace(" ", "_").lower()
 
     user_id = training_params.user_id
