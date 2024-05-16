@@ -144,7 +144,6 @@ class TrainingParams(BaseModel):
 # this is a modified version of lora_gui.train_model.
 # Adapted to exclude gradio gui specific code.
 def _train_model(
-    db,
     model_id,
     user_id,
     headless,
@@ -941,6 +940,7 @@ def _train_model(
             os.path.join(output_dir, f"{output_name}.{save_model_as}"), user_id
         )
 
+        db = get_db()
         update_lora_model(db, model_id, object_key, LoraModelStatus.READY)
 
 
@@ -953,7 +953,6 @@ def read_root():
 def train_model(
     training_params: TrainingParams,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db),
 ):
     model_id = training_params.lora_model_id
     model_name = training_params.lora_model_name
@@ -994,7 +993,6 @@ def train_model(
 
     background_tasks.add_task(
         _train_model,
-        db=db,
         model_id=model_id,
         user_id=user_id,
         headless=False,
