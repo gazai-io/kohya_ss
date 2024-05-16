@@ -130,7 +130,6 @@ class TrainingParams(BaseModel):
     user_id: str
     lora_model_id: str
     lora_model_name: str
-    description: str
     base_model: str
     resolution: str
     training_images: List[str]
@@ -981,11 +980,6 @@ def train_model(
     for object_name in training_params.training_images:
         object_key = rf"assets/{user_id}/{object_name}"
         local_file_path = os.path.join(training_images_dir_input, object_name)
-        s3.download_file(BUCKET_NAME, object_key, local_file_path)
-
-    for object_name in training_params.regularization_images:
-        object_key = rf"assets/{user_id}/{object_name}"
-        local_file_path = os.path.join(regularization_images_dir_input, object_name)
         s3.download_file(BUCKET_NAME, object_key, local_file_path)
 
     dreambooth_folder_creation_gui.dreambooth_folder_preparation(
