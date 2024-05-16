@@ -143,7 +143,7 @@ class TrainingParams(BaseModel):
 SQLALCHEMY_DATABASE_URL = os.environ.get("DB_URL")
 
 # Configure separate engine for background tasks
-engine = create_engine("SQLALCHEMY_DATABASE_URL")
+engine = create_engine(SQLALCHEMY_DATABASE_URL)
 
 
 # this is a modified version of lora_gui.train_model.
