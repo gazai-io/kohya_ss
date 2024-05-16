@@ -5,7 +5,7 @@ from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 import os
 import boto3
-from sqlalchemy import Column, Date, String
+from sqlalchemy import Column, Connection, Date, String, create_engine, update
 from sqlalchemy.orm import Session
 from kohya_gui import dreambooth_folder_creation_gui
 from dotenv import load_dotenv
@@ -60,14 +60,6 @@ s3 = boto3.client(
 )
 
 
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
 ################## from lora_gui ##################
 
 # Set up logging
@@ -110,12 +102,12 @@ class LoraModel(Base):
     createdAt = Column(Date)
 
 
-def update_lora_model(db: Session, id: str, object_key: str, status: LoraModelStatus):
-    lora_model = db.query(LoraModel).filter(LoraModel.id == id).first()
-    lora_model.objectKey = object_key
-    lora_model.status = status
-    db.commit()
-    db.close()
+def update_lora_model(
+    conn: Connection, id: str, object_key: str, status: LoraModelStatus
+):
+    update_stmt = update(LoraModel).where(LoraModel.id == id)
+    update_stmt.values(objectKey=object_key, status=status)
+    conn.execute()
 
 
 def upload_model_to_s3(file_path, user_id):
@@ -139,6 +131,14 @@ class TrainingParams(BaseModel):
 
     class Config:
         alias_generator = to_camel
+
+
+SQLALCHEMY_DATABASE_URL = os.environ.get("DB_URL")
+
+# Configure separate engine for background tasks
+engine = create_engine(
+    "your_database_url", pool_prefill=True, pool_size=5
+)  # Example configuration
 
 
 # this is a modified version of lora_gui.train_model.
@@ -940,8 +940,8 @@ def _train_model(
             os.path.join(output_dir, f"{output_name}.{save_model_as}"), user_id
         )
 
-        db = get_db()
-        update_lora_model(db, model_id, object_key, LoraModelStatus.READY)
+        with engine.connect() as conn:
+            update_lora_model(conn, model_id, object_key, LoraModelStatus.READY)
 
 
 @app.get("/")
@@ -950,10 +950,7 @@ def read_root():
 
 
 @app.post("/model/train")
-def train_model(
-    training_params: TrainingParams,
-    background_tasks: BackgroundTasks,
-):
+def train_model(training_params: TrainingParams, background_tasks: BackgroundTasks):
     model_id = training_params.lora_model_id
     model_name = training_params.lora_model_name
     model_name = model_name.replace(" ", "_").lower()
