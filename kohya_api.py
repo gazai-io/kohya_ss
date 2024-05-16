@@ -1,15 +1,14 @@
 from typing import List
 
-from fastapi import Depends, FastAPI, BackgroundTasks
+from fastapi import  FastAPI, BackgroundTasks
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 import os
 import boto3
-from sqlalchemy import Column, Connection, Date, String, create_engine, update
-from sqlalchemy.orm import Session
+from sqlalchemy import Column, Connection, Date, Enum, String, create_engine, update
 from kohya_gui import dreambooth_folder_creation_gui
 from dotenv import load_dotenv
-from database import Base, SessionLocal, engine
+from database import Base, engine
 from enum import Enum as PyEnum
 
 
@@ -96,7 +95,7 @@ class LoraModel(Base):
     baseModel = Column(String)
     resolution = Column(String, nullable=True)
     objectKey = Column(String, nullable=True)
-    status = Column(String)
+    status = Column(Enum(LoraModelStatus), default=LoraModelStatus.PENDING, nullable=False)
     userId = Column(String)
     regDataset = Column(String, nullable=True)
     createdAt = Column(Date)
@@ -105,9 +104,12 @@ class LoraModel(Base):
 def update_lora_model(
     conn: Connection, id: str, object_key: str, status: LoraModelStatus
 ):
-    update_stmt = update(LoraModel).where(LoraModel.id == id)
-    update_stmt.values(objectKey=object_key, status=status)
-    conn.execute()
+    update_stmt = (
+        update(LoraModel)
+        .where(LoraModel.id == id)
+        .values(objectKey=object_key, status=status)
+    )
+    conn.execute(update_stmt)
 
 
 def upload_model_to_s3(file_path, user_id):
