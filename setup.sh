@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+cd "$(dirname "$0")"
 
 # Function to display help information
 display_help() {
@@ -23,6 +24,7 @@ Options:
   -i, --interactive             Interactively configure accelerate instead of using default config file.
   -n, --no-git-update           Do not update kohya_ss repo. No git pull or clone operations.
   -p, --public                  Expose public URL in runpod mode. Won't have an effect in other modes.
+  -q, --quiet                   Suppress all output except errors.
   -r, --runpod                  Forces a runpod installation. Useful if detection fails for any reason.
   -s, --skip-space-check        Skip the 10Gb minimum storage space check.
   -u, --no-gui                  Skips launching the GUI.
@@ -91,6 +93,7 @@ PARENT_DIR=""
 VENV_DIR=""
 USE_IPEX=false
 USE_ROCM=false
+QUIET="--show_stdout"
 
 # Function to get the distro name
 get_distro_name() {
@@ -189,47 +192,60 @@ install_python_dependencies() {
   # Switch to local virtual env
   echo "Switching to virtual Python environment."
   if ! inDocker; then
-    if command -v python3.10 >/dev/null; then
+    # Check if conda environment is already activated
+    if [ -n "$CONDA_PREFIX" ]; then
+      echo "Detected active conda environment: $CONDA_DEFAULT_ENV"
+      echo "Using existing conda environment at: $CONDA_PREFIX"
+      # No need to create or activate a venv, conda env is already active
+    elif command -v python3.10 >/dev/null; then
       python3.10 -m venv "$DIR/venv"
+      # Activate the virtual environment
+      source "$DIR/venv/bin/activate"
     elif command -v python3 >/dev/null; then
       python3 -m venv "$DIR/venv"
+      # Activate the virtual environment
+      source "$DIR/venv/bin/activate"
     else
       echo "Valid python3 or python3.10 binary not found."
       echo "Cannot proceed with the python steps."
       return 1
     fi
-
-    # Activate the virtual environment
-    source "$DIR/venv/bin/activate"
   fi
 
   case "$OSTYPE" in
     "lin"*)
       if [ "$RUNPOD" = true ]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_runpod.txt $QUIET
       elif [ "$USE_IPEX" = true ]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_ipex.txt
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_ipex.txt $QUIET
       elif [ "$USE_ROCM" = true ] || [ -x "$(command -v rocminfo)" ] || [ -f "/opt/rocm/bin/rocminfo" ]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_rocm.txt
+        echo "Upgrading pip for ROCm."
+        pip install --upgrade pip # PyTorch ROCm is too large to install with older pip
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux_rocm.txt $QUIET
       else
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_linux.txt $QUIET
       fi
       ;;
     "darwin"*)
       if [[ "$(uname -m)" == "arm64" ]]; then
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_arm64.txt
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_arm64.txt $QUIET
       else
-        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_amd64.txt
+        python "$SCRIPT_DIR/setup/setup_linux.py" --platform-requirements-file=requirements_macos_amd64.txt $QUIET
       fi
       ;;
   esac
 
   if [ -n "$VIRTUAL_ENV" ] && ! inDocker; then
-    if command -v deactivate >/dev/null; then
-      echo "Exiting Python virtual environment."
-      deactivate
+    # Don't deactivate if we're using a conda environment that was already active
+    if [ -z "$CONDA_PREFIX" ] || [ "$VIRTUAL_ENV" != "$CONDA_PREFIX" ]; then
+      if command -v deactivate >/dev/null; then
+        echo "Exiting Python virtual environment."
+        deactivate
+      else
+        echo "deactivate command not found. Could still be in the Python virtual environment."
+      fi
     else
-      echo "deactivate command not found. Could still be in the Python virtual environment."
+      echo "Keeping conda environment active as it was already activated before running this script."
     fi
   fi
 }
@@ -307,7 +323,7 @@ update_kohya_ss() {
 
 # Section: Command-line options parsing
 
-while getopts ":vb:d:g:inprus-:" opt; do
+while getopts ":vb:d:g:inpqrus-:" opt; do
   # support long options: https://stackoverflow.com/a/28466267/519360
   if [ "$opt" = "-" ]; then # long option: reformulate OPT and OPTARG
     opt="${OPTARG%%=*}"     # extract long option name
@@ -322,6 +338,7 @@ while getopts ":vb:d:g:inprus-:" opt; do
   i | interactive) INTERACTIVE=true ;;
   n | no-git-update) SKIP_GIT_UPDATE=true ;;
   p | public) PUBLIC=true ;;
+  q | quiet) QUIET="" ;;
   r | runpod) RUNPOD=true ;;
   s | skip-space-check) SKIP_SPACE_CHECK=true ;;
   u | no-gui) SKIP_GUI=true ;;

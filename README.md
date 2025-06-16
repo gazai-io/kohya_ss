@@ -1,8 +1,18 @@
 # Kohya's GUI
 
-This repository primarily provides a Gradio GUI for [Kohya's Stable Diffusion trainers](https://github.com/kohya-ss/sd-scripts). However, support for Linux OS is also offered through community contributions. macOS support is not optimal at the moment but might work if the conditions are favorable.
+[![GitHub stars](https://img.shields.io/github/stars/bmaltais/kohya_ss?style=social)](https://github.com/bmaltais/kohya_ss/stargazers)
+[![GitHub forks](https://img.shields.io/github/forks/bmaltais/kohya_ss?style=social)](https://github.com/bmaltais/kohya_ss/network/members)
+[![License](https://img.shields.io/github/license/bmaltais/kohya_ss)](LICENSE.md)
+[![GitHub issues](https://img.shields.io/github/issues/bmaltais/kohya_ss)](https://github.com/bmaltais/kohya_ss/issues)
 
-The GUI allows you to set the training parameters and generate and run the required CLI commands to train the model.
+This project provides a user-friendly Gradio-based Graphical User Interface (GUI) for [Kohya's Stable Diffusion training scripts](https://github.com/kohya-ss/sd-scripts). Stable Diffusion training empowers users to customize image generation models by fine-tuning existing models, creating unique artistic styles, and training specialized models like LoRA (Low-Rank Adaptation).
+
+Key features of this GUI include:
+*   Easy-to-use interface for setting a wide range of training parameters.
+*   Automatic generation of the command-line interface (CLI) commands required to run the training scripts.
+*   Support for various training methods, including LoRA, Dreambooth, fine-tuning, and SDXL training.
+
+Support for Linux and macOS is also available. While Linux support is actively maintained through community contributions, macOS compatibility may vary.
 
 ## Table of Contents
 
@@ -10,31 +20,30 @@ The GUI allows you to set the training parameters and generate and run the requi
   - [Table of Contents](#table-of-contents)
   - [🦒 Colab](#-colab)
   - [Installation](#installation)
-    - [Windows](#windows)
-      - [Windows Pre-requirements](#windows-pre-requirements)
-      - [Setup Windows](#setup-windows)
-      - [Optional: CUDNN 8.9.6.50](#optional-cudnn-89650)
-    - [Linux and macOS](#linux-and-macos)
-      - [Linux Pre-requirements](#linux-pre-requirements)
-      - [Setup Linux](#setup-linux)
-      - [Install Location](#install-location)
+    - [Prerequisites](#prerequisites)
+        - [Installing Prerequisites on Windows](#installing-prerequisites-on-windows)
+        - [Installing Prerequisites on Linux--macos](#installing-prerequisites-on-linux--macos)
+    - [Cloning the Repository](#cloning-the-repository)
+    - [Installation Methods](#installation-methods)
+        - [Using `uv` (Recommended)](#using-uv-recommended)
+            - [For Windows](#for-windows)
+            - [For Linux](#for-linux)
+        - [Using `pip` (Traditional Method)](#using-pip-traditional-method)
+            - [Using `pip` For Windows](#using-pip-for-windows)
+            - [Using `pip` For Linux and macOS](#using-pip-for-linux-and-macos)
+        - [Using `conda`](#using-conda)
+    - [Optional: Install Location Details](#optional-install-location-details)
     - [Runpod](#runpod)
-      - [Manual installation](#manual-installation)
-      - [Pre-built Runpod template](#pre-built-runpod-template)
+    - [Novita](#novita)
     - [Docker](#docker)
-      - [Get your Docker ready for GPU support](#get-your-docker-ready-for-gpu-support)
-        - [Windows](#windows-1)
-        - [Linux, OSX](#linux-osx)
-      - [Design of our Dockerfile](#design-of-our-dockerfile)
-      - [Use the pre-built Docker image](#use-the-pre-built-docker-image)
-      - [Local docker build](#local-docker-build)
-      - [ashleykleynhans runpod docker builds](#ashleykleynhans-runpod-docker-builds)
   - [Upgrading](#upgrading)
     - [Windows Upgrade](#windows-upgrade)
     - [Linux and macOS Upgrade](#linux-and-macos-upgrade)
   - [Starting GUI Service](#starting-gui-service)
-    - [Launching the GUI on Windows](#launching-the-gui-on-windows)
+    - [Launching the GUI on Windows (pip method)](#launching-the-gui-on-windows-pip-method)
+    - [Launching the GUI on Windows (uv method)](#launching-the-gui-on-windows-uv-method)
     - [Launching the GUI on Linux and macOS](#launching-the-gui-on-linux-and-macos)
+    - [Launching the GUI on Linux (uv method)](#launching-the-gui-on-linux-uv-method)
   - [Custom Path Defaults](#custom-path-defaults)
   - [LoRA](#lora)
   - [Sample image generation during training](#sample-image-generation-during-training)
@@ -42,17 +51,27 @@ The GUI allows you to set the training parameters and generate and run the requi
     - [Page File Limit](#page-file-limit)
     - [No module called tkinter](#no-module-called-tkinter)
     - [LORA Training on TESLA V100 - GPU Utilization Issue](#lora-training-on-tesla-v100---gpu-utilization-issue)
-      - [Issue Summary](#issue-summary)
-      - [Potential Solutions](#potential-solutions)
   - [SDXL training](#sdxl-training)
   - [Masked loss](#masked-loss)
+  - [Guides](#guides)
+    - [Using Accelerate Lora Tab to Select GPU ID](#using-accelerate-lora-tab-to-select-gpu-id)
+      - [Starting Accelerate in GUI](#starting-accelerate-in-gui)
+      - [Running Multiple Instances (linux)](#running-multiple-instances-linux)
+      - [Monitoring Processes](#monitoring-processes)
+  - [Interesting Forks](#interesting-forks)
+  - [Contributing](#contributing)
+  - [License](#license)
   - [Change History](#change-history)
-
+    - [v25.0.3](#v2503)
+    - [v25.0.2](#v2502)
+    - [v25.0.1](#v2501)
+    - [v25.0.0](#v2500)
+  
 ## 🦒 Colab
 
 This Colab notebook was not created or maintained by me; however, it appears to function effectively. The source can be found at: <https://github.com/camenduru/kohya_ss-colab>.
 
-I would like to express my gratitude to camendutu for their valuable contribution. If you encounter any issues with the Colab notebook, please report them on their repository.
+I would like to express my gratitude to camenduru for their valuable contribution. If you encounter any issues with the Colab notebook, please report them on their repository.
 
 | Colab                                                                                                                                                                          | Info               |
 | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------ |
@@ -60,110 +79,175 @@ I would like to express my gratitude to camendutu for their valuable contributio
 
 ## Installation
 
-### Windows
+### Prerequisites
 
-#### Windows Pre-requirements
+Before you begin, make sure your system meets the following minimum requirements:
 
-To install the necessary dependencies on a Windows system, follow these steps:
+- **Python**
+    - Windows: Version **3.11.9**
+    - Linux/macOS: Version **3.10.9 or higher**, but **below 3.11.0**
+- **Git** – Required for cloning the repository
+- **NVIDIA CUDA Toolkit** – Version 12.8 or compatible
+- **NVIDIA GPU** – Required for training; VRAM needs vary
+- **(Optional) NVIDIA cuDNN** – Improves training speed and batch size
+- **Windows only** – Visual Studio 2015–2022 Redistributables
 
-1. Install [Python 3.10.11](https://www.python.org/ftp/python/3.10.11/python-3.10.11-amd64.exe).
-   - During the installation process, ensure that you select the option to add Python to the 'PATH' environment variable.
+#### Installing Prerequisites on Windows
 
-2. Install [CUDA 11.8 toolkit](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Windows&target_arch=x86_64).
+1. Install [Python 3.11.9](https://www.python.org/ftp/python/3.11.9/python-3.11.9-amd64.exe)  
+   ✅ Enable the "Add to PATH" option during setup
 
-3. Install [Git](https://git-scm.com/download/win).
+2. Install [CUDA 12.8 Toolkit](https://developer.nvidia.com/cuda-12-8-0-download-archive?target_os=Windows&target_arch=x86_64)
 
-4. Install the [Visual Studio 2015, 2017, 2019, and 2022 redistributable](https://aka.ms/vs/17/release/vc_redist.x64.exe).
+3. Install [Git](https://git-scm.com/download/win)
 
-#### Setup Windows
+4. Install [Visual Studio Redistributables](https://aka.ms/vs/17/release/vc_redist.x64.exe)
 
-To set up the project, follow these steps:
 
-1. Open a terminal and navigate to the desired installation directory.
+#### Installing Prerequisites on Linux / macOS
 
-2. Clone the repository by running the following command:
+1. Install Python (Make sure you have Python version 3.10.9 or higher (but lower than 3.11.0) installed on your system.)
+   On Ubuntu 22.04 or later:
 
-   ```shell
-   git clone --recursive https://github.com/bmaltais/kohya_ss.git
+   ```bash
+   sudo apt update
+   sudo apt install python3.10 python3.10-venv
    ```
 
-3. Change into the `kohya_ss` directory:
+2. Install [CUDA 12.8 Toolkit](https://developer.nvidia.com/cuda-12-8-0-download-archive?target_os=Linux&target_arch=x86_64)  
+   Follow the instructions for your distribution.
 
-   ```shell
-   cd kohya_ss
-   ```
+> [!NOTE]
+> macOS is only supported via the **pip method**.  
+> CUDA is usually not required and may not be compatible with Apple Silicon GPUs.
 
-4. Run one of the following setup script by executing the following command:
+### Cloning the Repository
 
-   For systems with only python 3.10.11 installed:
+To install the project, you must first clone the repository **with submodules**:
 
-   ```shell
-   .\setup.bat
-   ```
+```bash
+git clone --recursive https://github.com/bmaltais/kohya_ss.git
+cd kohya_ss
+```
 
-   For systems with only more than one python release installed:
+> The `--recursive` flag ensures that all required Git submodules are also cloned.
 
-   ```shell
-   .\setup-3.10.bat
-   ```
+---
 
-   During the accelerate config step, use the default values as proposed during the configuration unless you know your hardware demands otherwise. The amount of VRAM on your GPU does not impact the values used.
+### Installation Methods
 
-#### Optional: CUDNN 8.9.6.50
+This project offers two primary methods for installing and running the GUI: using the `uv` package manager (recommended for ease of use and automatic updates) or using the traditional `pip` package manager. Below, you'll find details on both approaches. Please read this section to decide which method best suits your needs before proceeding to the OS-specific installation prerequisites.
 
-The following steps are optional but will improve the learning speed for owners of NVIDIA 30X0/40X0 GPUs. These steps enable larger training batch sizes and faster training speeds.
+**Key Differences:**
 
-1. Run `.\setup.bat` and select `2. (Optional) Install cudnn files (if you want to use the latest supported cudnn version)`.
+*   **`uv` method:**
+    *   Simplifies the setup process.
+    *   Automatically handles updates when you run `gui-uv.bat` (Windows) or `gui-uv.sh` (Linux).
+    *   No need to run `setup.bat` or `setup.sh` after the initial clone.
+    *   This is the recommended method for most users on Windows and Linux.
+    *   **Not recommended for Runpod or macOS installations.** For these, please use the `pip` method.
+*   **`pip` method:**
+    *   The traditional method, requiring manual execution of `setup.bat` (Windows) or `setup.sh` (Linux) after cloning and for updates.
+    *   Necessary for environments like Runpod and macOS where the `uv` scripts are not intended to be used.
 
-### Linux and macOS
+Subsequent sections will detail the specific commands for each method.
 
-#### Linux Pre-requirements
+#### Using `uv` (Recommended)
 
-To install the necessary dependencies on a Linux system, ensure that you fulfill the following requirements:
+> [!NOTE]
+> This method is not intended for runpod or MacOS installation. Use the "pip based package manager" setup instead.
 
-- Ensure that `venv` support is pre-installed. You can install it on Ubuntu 22.04 using the command:
+##### For Windows
 
-  ```shell
-  apt install python3.10-venv
-  ```
+Run:
 
-- Install the CUDA 11.8 Toolkit by following the instructions provided in [this link](https://developer.nvidia.com/cuda-11-8-0-download-archive?target_os=Linux&target_arch=x86_64).
+```powershell
+gui-uv.bat
+```
 
-- Make sure you have Python version 3.10.9 or higher (but lower than 3.11.0) installed on your system.
+For full details and command-line options, see:  
+[Launching the GUI on Windows (uv method)](https://github.com/bmaltais/kohya_ss#launching-the-gui-on-windows-uv-method)
 
-#### Setup Linux
 
-To set up the project on Linux or macOS, perform the following steps:
+##### For Linux
 
-1. Open a terminal and navigate to the desired installation directory.
 
-2. Clone the repository by running the following command:
+Run:
 
-   ```shell
-   git clone --recursive https://github.com/bmaltais/kohya_ss.git
-   ```
+```bash
+./gui-uv.sh
+```
 
-3. Change into the `kohya_ss` directory:
 
-   ```shell
-   cd kohya_ss
-   ```
+For full details, including headless mode, see:  
+[Launching the GUI on Linux (uv method)](https://github.com/bmaltais/kohya_ss#launching-the-gui-on-linux-uv-method)
 
-4. If you encounter permission issues, make the `setup.sh` script executable by running the following command:
+#### Using `pip` (Traditional Method)
+This method uses the traditional `pip` package manager and requires manual script execution for setup and updates.
+It is necessary for environments like Runpod or macOS, or if you prefer managing your environment with `pip`.
 
-   ```shell
-   chmod +x ./setup.sh
-   ```
+##### Using `pip` For Windows
 
-5. Run the setup script by executing the following command:
+For systems with only python 3.10.11 installed:
 
-   ```shell
-   ./setup.sh
-   ```
+```shell
+.\setup.bat
+```
 
-   Note: If you need additional options or information about the runpod environment, you can use `setup.sh -h` or `setup.sh --help` to display the help message.
+For systems with only more than one python release installed:
 
-#### Install Location
+```shell
+.\setup-3.10.bat
+```
+
+During the accelerate config step, use the default values as proposed during the configuration unless you know your hardware demands otherwise. 
+The amount of VRAM on your GPU does not impact the values used.
+
+*   Optional: CUDNN 8.9.6.50
+
+    The following steps are optional but will improve the learning speed for owners of NVIDIA 30X0/40X0 GPUs. These steps enable larger training batch sizes and faster training speeds.
+
+    Run `.\setup.bat` and select `2. (Optional) Install cudnn files (if you want to use the latest supported cudnn version)`.
+
+##### Using `pip` For Linux and macOS
+
+If you encounter permission issues, make the `setup.sh` script executable by running the following command:
+
+```shell
+chmod +x ./setup.sh
+```
+
+Run the setup script by executing the following command:
+
+```shell
+./setup.sh
+```
+
+> [!NOTE]
+> If you need additional options or information about the runpod environment, you can use `setup.sh -h` or `setup.sh --help` to display the help message.
+
+##### Using `conda`
+
+```shell
+# Create Conda Environment
+conda create -n kohyass python=3.11
+conda activate kohyass
+
+# Run the Scripts
+chmod +x setup.sh
+./setup.sh
+
+chmod +x gui.sh
+./gui.sh
+```
+> [!NOTE]
+> For Windows users, the `chmod +x` commands are not necessary. You should run `setup.bat` and subsequently `gui.bat` (or `gui.ps1` if you prefer PowerShell) instead of the `.sh` scripts.
+
+#### Optional: Install Location Details for Linux and Mac
+
+> Note: 
+> The information below regarding install location applies to both `uv` and `pip` installation methods.
+> Most users don’t need to change the install directory. The following applies only if you want to customize the installation path or troubleshoot permission issues.
 
 The default installation location on Linux is the directory where the script is located. If a previous installation is detected in that location, the setup will proceed there. Otherwise, the installation will fall back to `/opt/kohya_ss`. If `/opt` is not writable, the fallback location will be `$HOME/kohya_ss`. Finally, if none of the previous options are viable, the installation will be performed in the current directory.
 
@@ -171,120 +255,17 @@ For macOS and other non-Linux systems, the installation process will attempt to 
 
 If you choose to use the interactive mode, the default values for the accelerate configuration screen will be "This machine," "None," and "No" for the remaining questions. These default answers are the same as the Windows installation.
 
-### Runpod
+#### Runpod
 
-#### Manual installation
+See [Runpod Installation Guide](docs/installation_runpod.md) for details.
 
-To install the necessary components for Runpod and run kohya_ss, follow these steps:
+#### Novita
 
-1. Select the Runpod pytorch 2.0.1 template. This is important. Other templates may not work.
+See [Novita Installation Guide](docs/installation_novita.md) for details.
 
-2. SSH into the Runpod.
+#### Docker
 
-3. Clone the repository by running the following command:
-
-   ```shell
-   cd /workspace
-   git clone --recursive https://github.com/bmaltais/kohya_ss.git
-   ```
-
-4. Run the setup script:
-
-   ```shell
-   cd kohya_ss
-   ./setup-runpod.sh
-   ```
-
-5. Run the GUI with:
-
-   ```shell
-   ./gui.sh --share --headless
-   ```
-
-   or with this if you expose 7860 directly via the runpod configuration:
-
-   ```shell
-   ./gui.sh --listen=0.0.0.0 --headless
-   ```
-
-6. Connect to the public URL displayed after the installation process is completed.
-
-#### Pre-built Runpod template
-
-To run from a pre-built Runpod template, you can:
-
-1. Open the Runpod template by clicking on <https://runpod.io/gsc?template=ya6013lj5a&ref=w18gds2n>.
-
-2. Deploy the template on the desired host.
-
-3. Once deployed, connect to the Runpod on HTTP 3010 to access the kohya_ss GUI. You can also connect to auto1111 on HTTP 3000.
-
-### Docker
-
-#### Get your Docker ready for GPU support
-
-##### Windows
-
-Once you have installed [**Docker Desktop**](https://www.docker.com/products/docker-desktop/), [**CUDA Toolkit**](https://developer.nvidia.com/cuda-downloads), [**NVIDIA Windows Driver**](https://www.nvidia.com.tw/Download/index.aspx), and ensured that your Docker is running with [**WSL2**](https://docs.docker.com/desktop/wsl/#turn-on-docker-desktop-wsl-2), you are ready to go.
-
-Here is the official documentation for further reference.  
-<https://docs.nvidia.com/cuda/wsl-user-guide/index.html#nvidia-compute-software-support-on-wsl-2>
-<https://docs.docker.com/desktop/wsl/use-wsl/#gpu-support>
-
-##### Linux, OSX
-
-Install an NVIDIA GPU Driver if you do not already have one installed.  
-<https://docs.nvidia.com/datacenter/tesla/tesla-installation-notes/index.html>
-
-Install the NVIDIA Container Toolkit with this guide.  
-<https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html>
-
-#### Design of our Dockerfile
-
-- It is required that all training data is stored in the `dataset` subdirectory, which is mounted into the container at `/dataset`.
-- Please note that the file picker functionality is not available. Instead, you will need to manually input the folder path and configuration file path.
-- TensorBoard has been separated from the project.
-  - TensorBoard is not included in the Docker image.
-  - The "Start TensorBoard" button has been hidden.
-  - TensorBoard is launched from a distinct container [as shown here](/docker-compose.yaml#L41).
-- The browser won't be launched automatically. You will need to manually open the browser and navigate to [http://localhost:7860/](http://localhost:7860/) and [http://localhost:6006/](http://localhost:6006/)
-- This Dockerfile has been designed to be easily disposable. You can discard the container at any time and restart it with the new code version.
-
-#### Use the pre-built Docker image
-
-```bash
-git clone --recursive https://github.com/bmaltais/kohya_ss.git
-cd kohya_ss
-docker compose up -d
-```
-
-To update the system, do `docker compose down && docker compose up -d --pull always`
-
-#### Local docker build
-
-> [!IMPORTANT]  
-> Clone the Git repository ***recursively*** to include submodules:  
-> `git clone --recursive https://github.com/bmaltais/kohya_ss.git`
-
-```bash
-git clone --recursive https://github.com/bmaltais/kohya_ss.git
-cd kohya_ss
-docker compose up -d --build
-```
-
-> [!NOTE]  
-> Building the image may take up to 20 minutes to complete.
-
-To update the system, ***checkout to the new code version*** and rebuild using `docker compose down && docker compose up -d --build --pull always`
-
-> If you are running on Linux, an alternative Docker container port with fewer limitations is available [here](https://github.com/P2Enjoy/kohya_ss-docker).
-
-#### ashleykleynhans runpod docker builds
-
-You may want to use the following repositories when running on runpod:
-
-- Standalone Kohya_ss template: <https://github.com/ashleykleynhans/kohya-docker>
-- Auto1111 + Kohya_ss GUI template: <https://github.com/ashleykleynhans/stable-diffusion-docker>
+See [Docker Installation Guide](docs/installation_docker.md) for details.
 
 ## Upgrading
 
@@ -292,55 +273,79 @@ To upgrade your installation to a new version, follow the instructions below.
 
 ### Windows Upgrade
 
-If a new release becomes available, you can upgrade your repository by running the following commands from the root directory of the project:
+If a new release becomes available, you can upgrade your repository by following these steps:
 
-1. Pull the latest changes from the repository:
+*   **If you are using the `uv`-based installation (`gui-uv.bat`):**
+    1.  Pull the latest changes from the repository:
+        ```powershell
+        git pull
+        ```
+    2.  Updates to the Python environment are handled automatically when you next run the `gui-uv.bat` script. No separate setup script execution is needed.
 
-   ```powershell
-   git pull
-   ```
-
-2. Run the setup script:
-
-   ```powershell
-   .\setup.bat
-   ```
+*   **If you are using the `pip`-based installation (`gui.bat` or `gui.ps1`):**
+    1.  Pull the latest changes from the repository:
+        ```powershell
+        git pull
+        ```
+    2.  Run the setup script to update dependencies:
+        ```powershell
+        .\setup.bat
+        ```
 
 ### Linux and macOS Upgrade
 
 To upgrade your installation on Linux or macOS, follow these steps:
 
-1. Open a terminal and navigate to the root directory of the project.
+*   **If you are using the `uv`-based installation (`gui-uv.sh`):**
+    1.  Open a terminal and navigate to the root directory of the project.
+    2.  Pull the latest changes from the repository:
+        ```bash
+        git pull
+        ```
+    3.  Updates to the Python environment are handled automatically when you next run the `gui-uv.sh` script. No separate setup script execution is needed.
 
-2. Pull the latest changes from the repository:
-
-   ```bash
-   git pull
-   ```
-
-3. Refresh and update everything:
-
-   ```bash
-   ./setup.sh
-   ```
+*   **If you are using the `pip`-based installation (`gui.sh`):**
+    1.  Open a terminal and navigate to the root directory of the project.
+    2.  Pull the latest changes from the repository:
+        ```bash
+        git pull
+        ```
+    3.  Refresh and update everything by running the setup script:
+        ```bash
+        ./setup.sh
+        ```
 
 ## Starting GUI Service
 
-To launch the GUI service, you can use the provided scripts or run the `kohya_gui.py` script directly. Use the command line arguments listed below to configure the underlying service.
+To launch the GUI service, use the script corresponding to your chosen installation method (`uv` or `pip`), or run the `kohya_gui.py` script directly. Use the command line arguments listed below to configure the underlying service.
 
 ```text
---listen: Specify the IP address to listen on for connections to Gradio.
---username: Set a username for authentication.
---password: Set a password for authentication.
---server_port: Define the port to run the server listener on.
---inbrowser: Open the Gradio UI in a web browser.
---share: Share the Gradio UI.
---language: Set custom language
+  --help                show this help message and exit
+  --config CONFIG       Path to the toml config file for interface defaults
+  --debug               Debug on
+  --listen LISTEN       IP to listen on for connections to Gradio
+  --username USERNAME   Username for authentication
+  --password PASSWORD   Password for authentication
+  --server_port SERVER_PORT
+                        Port to run the server listener on
+  --inbrowser           Open in browser
+  --share               Share the gradio UI
+  --headless            Is the server headless
+  --language LANGUAGE   Set custom language
+  --use-ipex            Use IPEX environment
+  --use-rocm            Use ROCm environment
+  --do_not_use_shell    Enforce not to use shell=True when running external commands
+  --do_not_share        Do not share the gradio UI
+  --requirements REQUIREMENTS
+                        requirements file to use for validation
+  --root_path ROOT_PATH
+                        `root_path` for Gradio to enable reverse proxy support. e.g. /kohya_ss
+  --noverify            Disable requirements verification
 ```
 
-### Launching the GUI on Windows
+### Launching the GUI on Windows (pip method)
 
-On Windows, you can use either the `gui.ps1` or `gui.bat` script located in the root directory. Choose the script that suits your preference and run it in a terminal, providing the desired command line arguments. Here's an example:
+If you installed using the `pip` method, use either the `gui.ps1` or `gui.bat` script located in the root directory. Choose the script that suits your preference and run it in a terminal, providing the desired command line arguments. Here's an example:
 
 ```powershell
 gui.ps1 --listen 127.0.0.1 --server_port 7860 --inbrowser --share
@@ -352,13 +357,49 @@ or
 gui.bat --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 ```
 
+### Launching the GUI on Windows (uv method)
+
+If you installed using the `uv` method, use the `gui-uv.bat` script to start the GUI. Follow these steps:
+
+When you run `gui-uv.bat`, it will first check if `uv` is installed on your system. If `uv` is not found, the script will prompt you, asking if you'd like to attempt an automatic installation. You can choose 'Y' to let the script try to install `uv` for you, or 'N' to cancel. If you cancel, you'll need to install `uv` manually from [https://astral.sh/uv](https://astral.sh/uv) before running `gui-uv.bat` again.
+
+```cmd
+.\gui-uv.bat
+```
+
+or
+
+```powershell
+.\gui-uv.bat --listen 127.0.0.1 --server_port 7860 --inbrowser --share
+```
+
+This script utilizes the `uv` managed environment.
+
 ### Launching the GUI on Linux and macOS
 
-To launch the GUI on Linux or macOS, run the `gui.sh` script located in the root directory. Provide the desired command line arguments as follows:
+If you installed using the `pip` method on Linux or macOS, run the `gui.sh` script located in the root directory. Provide the desired command line arguments as follows:
 
 ```bash
-gui.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
+./gui.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
 ```
+
+### Launching the GUI on Linux (uv method)
+
+If you installed using the `uv` method on Linux, use the `gui-uv.sh` script to start the GUI. Follow these steps:
+
+When you run `gui-uv.sh`, it will first check if `uv` is installed on your system. If `uv` is not found, the script will prompt you, asking if you'd like to attempt an automatic installation. You can choose 'Y' (or 'y') to let the script try to install `uv` for you, or 'N' (or 'n') to cancel. If you cancel, you'll need to install `uv` manually from [https://astral.sh/uv](https://astral.sh/uv) before running `gui-uv.sh` again.
+
+```shell
+./gui-uv.sh --listen 127.0.0.1 --server_port 7860 --inbrowser --share
+```
+
+If you are running on a headless server, use:
+
+```shell
+./gui-uv.sh --headless --listen 127.0.0.1 --server_port 7860 --inbrowser --share
+```
+
+This script utilizes the `uv` managed environment.
 
 ## Custom Path Defaults
 
@@ -379,6 +420,10 @@ You can specify the path to your config.toml (or any other name you like) when r
 To train a LoRA, you can currently use the `train_network.py` code. You can create a LoRA network by using the all-in-one GUI.
 
 Once you have created the LoRA network, you can generate images using auto1111 by installing [this extension](https://github.com/kohya-ss/sd-webui-additional-networks).
+
+For more detailed information on LoRA training options and advanced configurations, please refer to our LoRA documentation:
+- [LoRA Training Guide](docs/LoRA/top_level.md)
+- [LoRA Training Options](docs/LoRA/options.md)
 
 ## Sample image generation during training
 
@@ -417,27 +462,81 @@ If you encounter an error indicating that the module `tkinter` is not found, try
 
 ### LORA Training on TESLA V100 - GPU Utilization Issue
 
-#### Issue Summary
-
-When training LORA on a TESLA V100, users reported low GPU utilization. Additionally, there was difficulty in specifying GPUs other than the default for training.
-
-#### Potential Solutions
-
-- **GPU Selection:** Users can specify GPU IDs in the setup configuration to select the desired GPUs for training.
-- **Improving GPU Load:** Utilizing `adamW8bit` optimizer and increasing the batch size can help achieve 70-80% GPU utilization without exceeding GPU memory limits.
+See [Troubleshooting LORA Training on TESLA V100](docs/troubleshooting_tesla_v100.md) for details.
 
 ## SDXL training
 
-The documentation in this section will be moved to a separate document later.
+For detailed guidance on SDXL training, please refer to the [official sd-scripts documentation](https://github.com/kohya-ss/sd-scripts/blob/main/README.md#sdxl-training) and relevant sections in our [LoRA Training Guide](docs/LoRA/top_level.md).
 
 ## Masked loss
 
 The masked loss is supported in each training script. To enable the masked loss, specify the `--masked_loss` option.
 
-The feature is not fully tested, so there may be bugs. If you find any issues, please open an Issue.
+> [!WARNING]
+> The feature is not fully tested, so there may be bugs. If you find any issues, please open an Issue.
 
 ControlNet dataset is used to specify the mask. The mask images should be the RGB images. The pixel value 255 in R channel is treated as the mask (the loss is calculated only for the pixels with the mask), and 0 is treated as the non-mask. The pixel values 0-255 are converted to 0-1 (i.e., the pixel value 128 is treated as the half weight of the loss). See details for the dataset specification in the [LLLite documentation](./docs/train_lllite_README.md#preparing-the-dataset).
 
+## Guides
+
+The following are guides extracted from issues discussions
+
+### Using Accelerate Lora Tab to Select GPU ID
+
+#### Starting Accelerate in GUI
+
+- Open the kohya GUI on your desired port.
+- Open the `Accelerate launch` tab
+- Ensure the Multi-GPU checkbox is unchecked.
+- Set GPU IDs to the desired GPU (like 1).
+
+#### Running Multiple Instances (linux)
+
+- For tracking multiple processes, use separate kohya GUI instances on different ports (e.g., 7860, 7861).
+- Start instances using `nohup ./gui.sh --listen 0.0.0.0 --server_port <port> --headless > log.log 2>&1 &`.
+
+#### Monitoring Processes
+
+- Open each GUI in a separate browser tab.
+- For terminal access, use SSH and tools like `tmux` or `screen`.
+
+For more details, visit the [GitHub issue](https://github.com/bmaltais/kohya_ss/issues/2577).
+
+## Interesting Forks
+
+To finetune HunyuanDiT models or create LoRAs, visit this [fork](https://github.com/Tencent/HunyuanDiT/tree/main/kohya_ss-hydit)
+
+## Contributing
+
+Contributions are welcome! If you'd like to contribute to this project, please consider the following:
+- For bug reports or feature requests, please open an issue on the [GitHub Issues page](https://github.com/bmaltais/kohya_ss/issues).
+- If you'd like to submit code changes, please open a pull request. Ensure your changes are well-tested and follow the existing code style.
+- For security-related concerns, please refer to our `SECURITY.md` file.
+
+## License
+
+This project is licensed under the Apache License 2.0. See the [LICENSE.md](LICENSE.md) file for details.
+
 ## Change History
 
-See release information.
+### v25.0.3
+
+- Upgrade Gradio, diffusers and huggingface-hub to latest release to fix issue with ASGI.
+- Add a new method to setup and run the GUI. You will find two new script for both Windows (gui-uv.bat) and Linux (gui-uv.sh). With those scripts there is no need to run setup.bat or setup.sh anymore.
+
+### v25.0.2
+
+- Force gradio to 5.14.0 or greater so it is updated.
+
+### v25.0.1
+
+- Fix issue with requirements version causing huggingface download issues
+
+### v25.0.0
+
+- Major update: Introduced support for flux.1 and sd3, moving the GUI to align with more recent script functionalities.
+- Users preferring the pre-flux.1/sd3 version can check out tag `v24.1.7`.
+  ```shell
+  git checkout v24.1.7
+  ```
+- For details on new flux.1 and sd3 parameters, refer to the [sd-scripts README](https://github.com/kohya-ss/sd-scripts/blob/sd3/README.md).

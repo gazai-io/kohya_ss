@@ -13,10 +13,17 @@ log = setup_logging()
 
 def load_model():
     # Set the device to GPU if available, otherwise use CPU
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if hasattr(torch, 'cuda') and torch.cuda.is_available():
+        device = 'cuda'
+    elif hasattr(torch, 'mps') and torch.mps.is_available():
+        device = 'mps'
+    else:
+        device = 'cpu'
+
 
     # Initialize the BLIP2 processor
     processor = Blip2Processor.from_pretrained("Salesforce/blip2-opt-2.7b")
+    log.debug('Processor initialized: %s', processor)
 
     # Initialize the BLIP2 model
     model = Blip2ForConditionalGeneration.from_pretrained(
@@ -42,7 +49,7 @@ def get_images_in_directory(directory_path):
     import os
 
     # List of common image file extensions to look for
-    image_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".gif"]
+    image_extensions = [".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp"]
 
     # Generate a list of image file paths in the directory
     image_files = [
